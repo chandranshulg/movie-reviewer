@@ -11,15 +11,10 @@
             padding: 0;
             background-color: #f4f4f4;
         }
-        .container {
-            width: 80%;
-            margin: auto;
-            overflow: hidden;
-        }
         header {
             background: #333;
             color: #fff;
-            padding-top: 30px;
+            padding-top: 20px;
             min-height: 70px;
             border-bottom: #bbb 1px solid;
             text-align: center;
@@ -28,21 +23,26 @@
             margin: 0;
             font-size: 24px;
         }
-        form {
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .auth-form, .review-form {
             background: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             margin: 20px 0;
         }
-        form input, form textarea {
+        .auth-form input, .review-form input, .review-form textarea {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        form input[type="submit"] {
+        .auth-form input[type="submit"], .review-form input[type="submit"] {
             background: #333;
             color: #fff;
             border: none;
@@ -50,7 +50,7 @@
             padding: 15px;
             font-size: 16px;
         }
-        form input[type="submit"]:hover {
+        .auth-form input[type="submit"]:hover, .review-form input[type="submit"]:hover {
             background: #555;
         }
         .reviews {
@@ -69,6 +69,15 @@
         .review p {
             margin: 10px 0;
         }
+        .rating {
+            margin: 10px 0;
+        }
+        .rating label {
+            margin-right: 10px;
+        }
+        .rating input {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -78,42 +87,112 @@
         </div>
     </header>
     <div class="container">
-        <form id="reviewForm">
+        <div class="auth-form" id="authForm">
+            <h2>User Authentication</h2>
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <input type="submit" id="authButton" value="Login">
+        </div>
+        <div class="review-form" id="reviewForm" style="display: none;">
             <h2>Submit Your Review</h2>
             <input type="text" id="movieTitle" placeholder="Movie Title" required>
             <textarea id="reviewText" rows="5" placeholder="Your Review" required></textarea>
-            <input type="submit" value="Submit Review">
-        </form>
+            <div class="rating">
+                <label>Rating:</label>
+                <input type="radio" name="rating" value="1" required>1
+                <input type="radio" name="rating" value="2">2
+                <input type="radio" name="rating" value="3">3
+                <input type="radio" name="rating" value="4">4
+                <input type="radio" name="rating" value="5">5
+            </div>
+            <input type="submit" id="submitReview" value="Submit Review">
+        </div>
         <div class="reviews" id="reviews">
             <!-- Reviews will be displayed here -->
         </div>
     </div>
     <script>
-        document.getElementById('reviewForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            const title = document.getElementById('movieTitle').value;
-            const review = document.getElementById('reviewText').value;
+        document.addEventListener('DOMContentLoaded', function() {
+            const authForm = document.getElementById('authForm');
+            const reviewForm = document.getElementById('reviewForm');
+            const reviewsContainer = document.getElementById('reviews');
+            const authButton = document.getElementById('authButton');
+            const submitReviewButton = document.getElementById('submitReview');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const movieTitleInput = document.getElementById('movieTitle');
+            const reviewTextInput = document.getElementById('reviewText');
+            const ratingInputs = document.getElementsByName('rating');
 
-            if (title && review) {
-                const reviewsContainer = document.getElementById('reviews');
-
-                const reviewElement = document.createElement('div');
-                reviewElement.className = 'review';
-
-                const titleElement = document.createElement('h3');
-                titleElement.textContent = title;
-                
-                const reviewTextElement = document.createElement('p');
-                reviewTextElement.textContent = review;
-
-                reviewElement.appendChild(titleElement);
-                reviewElement.appendChild(reviewTextElement);
-
-                reviewsContainer.appendChild(reviewElement);
-
-                document.getElementById('reviewForm').reset();
+            function showReviewForm() {
+                authForm.style.display = 'none';
+                reviewForm.style.display = 'block';
             }
+
+            function saveReview(title, review, rating) {
+                const reviews = JSON.parse(localStorage.getItem('reviews')) || [];
+                reviews.push({ title, review, rating });
+                localStorage.setItem('reviews', JSON.stringify(reviews));
+            }
+
+            function displayReviews() {
+                const reviews = JSON.parse(localStorage.getItem('reviews')) || [];
+                reviewsContainer.innerHTML = '';
+                reviews.forEach(review => {
+                    const reviewElement = document.createElement('div');
+                    reviewElement.className = 'review';
+                    
+                    const titleElement = document.createElement('h3');
+                    titleElement.textContent = `${review.title} - Rating: ${review.rating}`;
+                    
+                    const reviewTextElement = document.createElement('p');
+                    reviewTextElement.textContent = review.review;
+
+                    reviewElement.appendChild(titleElement);
+                    reviewElement.appendChild(reviewTextElement);
+
+                    reviewsContainer.appendChild(reviewElement);
+                });
+            }
+
+            authButton.addEventListener('click', function() {
+                const username = usernameInput.value;
+                const password = passwordInput.value;
+
+                if (username && password) {
+                    // Here you could add authentication logic
+                    showReviewForm();
+                } else {
+                    alert('Please enter username and password.');
+                }
+            });
+
+            submitReviewButton.addEventListener('click', function() {
+                const title = movieTitleInput.value;
+                const review = reviewTextInput.value;
+                let rating = 0;
+
+                for (const input of ratingInputs) {
+                    if (input.checked) {
+                        rating = input.value;
+                        break;
+                    }
+                }
+
+                if (title && review && rating) {
+                    saveReview(title, review, rating);
+                    displayReviews();
+                    movieTitleInput.value = '';
+                    reviewTextInput.value = '';
+                    for (const input of ratingInputs) {
+                        input.checked = false;
+                    }
+                } else {
+                    alert('Please fill out all fields and select a rating.');
+                }
+            });
+
+            displayReviews(); // Load reviews on page load
         });
     </script>
 </body>
